@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كتالوج المنتجات البيطرية</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📋 كتالوج المنتجات البيطرية</h1>
+            <p class="subtitle">أضِف المنتجات والصور، ثم حمّل الكتالوج بصيغة DOCX</p>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flashes">
+                    {% for category, message in messages %}
+                        <div class="flash {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Banner names -->
+        <section class="card">
+            <h2>🏷️ أسماء الخطوط (Banners)</h2>
+            <form action="{{ url_for('update_banners') }}" method="POST" class="banners-form">
+                {% for banner in data.banners %}
+                <div class="form-group" style="display: flex; gap: 10px; align-items: center; margin-bottom: 10px;">
+                    <input type="text" name="banner_name_{{ banner.id }}"
+                           value="{{ banner.name }}" required style="flex: 1; margin: 0;">
+                    {% if data.banners|length > 1 %}
+                    <a href="{{ url_for('delete_banner', banner_id=banner.id) }}" class="btn btn-danger" style="margin: 0; padding: 0.5rem;" onclick="return confirm('حذف هذا الخط؟');">حذف</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <div class="form-group" style="margin-top: 15px;">
+                    <label for="new_banner_name">إضافة خط جديد:</label>
+                    <input type="text" id="new_banner_name" name="new_banner_name"
+                           placeholder="اسم الخط الجديد (اختياري)">
+                </div>
+                <button type="submit" class="btn btn-secondary" style="margin-top: 10px;">حفظ الخطوط</button>
+            </form>
+        </section>
+
+        <!-- Add product -->
+        <section class="card">
+            <h2>➕ إضافة منتج جديد</h2>
+            <form action="{{ url_for('add_product') }}" method="POST"
+                  enctype="multipart/form-data" class="product-form">
+                <div class="form-group">
+                    <label for="name">اسم المنتج *</label>
+                    <input type="text" id="name" name="name" required
+                           placeholder="مثال: Solaze">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="composition">التركيب</label>
+                        <textarea id="composition" name="composition" rows="3"
+                                  placeholder="سطر لكل بند&#10;مثال:&#10;أموكسيسيلين تراي هيدرات 45.9%&#10;مكافئ لـ أموكسيسيلين 40%"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="indications">دواعي الاستخدام</label>
+                        <textarea id="indications" name="indications" rows="3"
+                                  placeholder="سطر لكل بند&#10;مثال:&#10;العلاج والسيطرة على العدوى التنفسية المزمنة&#10;عدوى الإي كولاي"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="features">المميزات / الملاحظات</label>
+                        <textarea id="features" name="features" rows="3"
+                                  placeholder="سطر لكل بند&#10;مثال:&#10;توافر حيوي يصل إلى 95%&#10;نفاذية نسيجية عالية"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-row split">
+                    <div class="form-group">
+                        <label for="image">صورة المنتج (اختياري)</label>
+                        <input type="file" id="image" name="image" accept="image/*">
+                        <small>PNG, JPG, WEBP — تظهر في خانة "العبوة"</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="banner">يتبع الخط</label>
+                        <select id="banner" name="banner">
+                            {% for banner in data.banners %}
+                            <option value="{{ banner.id }}">{{ banner.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">إضافة المنتج</button>
+            </form>
+        </section>
+
+        <!-- Product list -->
+        <section class="card">
+            <div class="card-header">
+                <h2>📦 المنتجات المضافة ({{ data.products|length }})</h2>
+                {% if data.products %}
+                    <div class="card-actions">
+                        <a href="{{ url_for('generate') }}" class="btn btn-primary">
+                            ⬇️ تحميل الكتالوج (DOCX)
+                        </a>
+                        <a href="{{ url_for('clear_all') }}" class="btn btn-danger"
+                           onclick="return confirm('هل أنت متأكد من مسح كل المنتجات؟');">
+                            🗑️ مسح الكل
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if data.products %}
+                <div class="products-list">
+                    {% for product in data.products %}
+                        <div class="product-card">
+                            <div class="product-card-header">
+                                <div>
+                                    <span class="product-name">{{ product.name }}</span>
+                                    <span class="banner-tag">
+                                        {% set found_banner = data.banners | selectattr("id", "equalto", product.banner_id) | first %}
+                                        {{ found_banner.name if found_banner else "خط محذوف" }}
+                                    </span>
+                                </div>
+                                <a href="{{ url_for('edit_product', product_id=product.id) }}" class="btn btn-sm btn-secondary">
+                                    تعديل
+                                </a>
+                                <a href="{{ url_for('delete_product', product_id=product.id) }}"
+                                   class="btn btn-sm btn-danger"
+                                   onclick="return confirm('حذف {{ product.name }}؟');">
+                                    حذف
+                                </a>
+                            </div>
+
+                            {% if product.image %}
+                                <div class="product-image">
+                                    <img src="{{ url_for('uploaded_file', filename=product.image) }}"
+                                         alt="{{ product.name }}">
+                                </div>
+                            {% endif %}
+
+                            <div class="product-fields">
+                                {% if product.composition_list %}
+                                    <div class="field">
+                                        <strong>التركيب:</strong>
+                                        <ul>
+                                            {% for line in product.composition_list %}
+                                                <li>{{ line }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                                {% if product.indications_list %}
+                                    <div class="field">
+                                        <strong>دواعي الاستخدام:</strong>
+                                        <ul>
+                                            {% for line in product.indications_list %}
+                                                <li>{{ line }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                {% endif %}
+                                {% if product.features_list %}
+                                    <div class="field">
+                                        <strong>المميزات:</strong>
+                                        <ol>
+                                            {% for line in product.features_list %}
+                                                <li>{{ line }}</li>
+                                            {% endfor %}
+                                        </ol>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="empty-state">لم يتم إضافة أي منتجات بعد. استخدم النموذج أعلاه لإضافة أول منتج.</p>
+            {% endif %}
+        </section>
+
+        <footer>
+            <p>صُنع بـ ❤️ — استخدمه لتوليد كتالوج المنتجات البيطرية بصيغة DOCX</p>
+        </footer>
+    </div>
+</body>
+</html>
