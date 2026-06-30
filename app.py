@@ -43,16 +43,8 @@ from docx.shared import Cm, Emu, Inches, Mm, Pt, RGBColor
 # ----------------------------------------------------------------------------
 BASE_DIR = Path(__file__).parent
 
-# On Render (or other platforms), we mount a persistent disk to /data
-# If DATA_DIR is not set, we default to the local BASE_DIR.
-DATA_DIR_ENV = os.environ.get("DATA_DIR")
-if DATA_DIR_ENV:
-    DATA_DIR = Path(DATA_DIR_ENV)
-else:
-    DATA_DIR = BASE_DIR
-
-UPLOAD_FOLDER = DATA_DIR / "uploads"
-OUTPUT_FOLDER = DATA_DIR / "output"
+UPLOAD_FOLDER = BASE_DIR / "uploads"
+OUTPUT_FOLDER = BASE_DIR / "output"
 LEGACY_DATA_FILE = BASE_DIR / "data.json"
 
 for d in (UPLOAD_FOLDER, OUTPUT_FOLDER):
@@ -64,8 +56,8 @@ app.config["UPLOAD_FOLDER"] = str(UPLOAD_FOLDER)
 app.config["OUTPUT_FOLDER"] = str(OUTPUT_FOLDER)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16 MB upload cap
 
-# Database configuration - using persistent storage path
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DATA_DIR / 'catalog.db'}"
+# Database configuration
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{BASE_DIR / 'catalog.db'}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
